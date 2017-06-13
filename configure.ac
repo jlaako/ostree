@@ -346,6 +346,45 @@ if test x$with_openssl != xno; then OSTREE_FEATURES="$OSTREE_FEATURES openssl"; 
 AM_CONDITIONAL(USE_OPENSSL, test $with_openssl != no)
 dnl end openssl
 
+dnl begin gnutls
+GNUTLS_DEPENDENCY="gnutls >= 3.5.0"
+AC_ARG_WITH(gnutls,
+AS_HELP_STRING([--with-gnutls], [Enable use of GnuTLS (checksums)]),
+:, with_gnutls=no)
+
+AS_IF([ test x$with_gnutls != xno ], [
+      PKG_CHECK_MODULES(OT_DEP_GNUTLS, $GNUTLS_DEPENDENCY)
+      AC_DEFINE([HAVE_GNUTLS], 1, [Define if we have gnutls])
+      with_gnutls=yes
+], [
+      with_gnutls=no
+])
+if test x$with_gnutls != xno; then OSTREE_FEATURES="$OSTREE_FEATURES gnutls"; fi
+AM_CONDITIONAL(USE_GNUTLS, test $with_gnutls != no)
+dnl end gnutls
+
+dnl begin libgcrypt
+dnl GCRYPT_DEPENDENCY="libgcrypt >= 1.7.0"
+AC_ARG_WITH(gcrypt,
+AS_HELP_STRING([--with-gcrypt], [Enable use of libgcrypt (checksums)]),
+:, with_gcrypt=no)
+
+AS_IF([ test x$with_gcrypt != xno ], [
+      AC_CHECK_HEADER([gcrypt.h],,[AC_MSG_ERROR([You must have gcrypt development package installed to enable this gcrypt support])])
+      dnl PKG_CHECK_MODULES(OT_DEP_GCRYPT, $GCRYPT_DEPENDENCY)
+      AC_DEFINE([HAVE_GCRYPT], 1, [Define if we have gcrypt])
+      OT_DEP_GCRYPT_CFLAGS="`libgcrypt-config --cflags`"
+      OT_DEP_GCRYPT_LIBS="`libgcrypt-config --libs`"
+      AC_SUBST([OT_DEP_GCRYPT_CFLAGS])
+      AC_SUBST([OT_DEP_GCRYPT_LIBS])
+      with_gcrypt=yes
+], [
+      with_gcrypt=no
+])
+if test x$with_gcrypt != xno; then OSTREE_FEATURES="$OSTREE_FEATURES gcrypt"; fi
+AM_CONDITIONAL(USE_GCRYPT, test $with_gcrypt != no)
+dnl end gcrypt
+
 dnl Avahi dependency for finding repos
 AVAHI_DEPENDENCY="avahi-client >= 0.6.31 avahi-glib >= 0.6.31"
 
@@ -537,6 +576,8 @@ echo "
     \"ostree trivial-httpd\":                       $enable_trivial_httpd_cmdline
     SELinux:                                      $with_selinux
     OpenSSL libcrypto (checksums):                $with_openssl
+    GnuTLS (checksums):				  $with_gnutls
+    libgcrypt (checksums):			  $with_gcrypt
     systemd:                                      $have_libsystemd
     libmount:                                     $with_libmount
     libarchive (parse tar files directly):        $with_libarchive
