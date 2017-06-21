@@ -231,6 +231,13 @@ gboolean      ostree_repo_remote_gpg_import (OstreeRepo         *self,
                                              GError            **error);
 
 _OSTREE_PUBLIC
+gboolean      ostree_repo_remote_x509_import (OstreeRepo   *self,
+                                              const char   *name,
+                                              const char   *source_path,
+                                              GCancellable *cancellable,
+                                              GError      **error);
+
+_OSTREE_PUBLIC
 gboolean      ostree_repo_remote_fetch_summary (OstreeRepo    *self,
                                                 const char    *name,
                                                 GBytes       **out_summary,

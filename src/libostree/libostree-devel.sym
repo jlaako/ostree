@@ -19,8 +19,8 @@
 
 /* Add new symbols here.  Release commits should copy this section into -released.sym. */
 LIBOSTREE_2017.12 {
+  ostree_repo_remote_x509_import;
 } LIBOSTREE_2017.11;
-
 
 /* Stub section for the stable release *after* this development one; don't
  * edit this other than to update the last number.  This is just a copy/paste

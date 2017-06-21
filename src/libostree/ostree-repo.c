@@ -1,3 +1,4 @@
+/* vi: set et sw=2 ts=2 cino=t0,(0: */
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
  *
  * Copyright (C) 2011 Colin Walters <walters@verbum.org>
@@ -1692,6 +1693,43 @@ out:
   g_prefix_error (error, "GPG: ");
 
   return ret;
+}
+
+/**
+ * ostree_repo_remote_x509_import:
+ * @self: Self
+ * @name: name of a remote
+ * @source_path: source certificate path
+ * @cancellable: a #GCancellable
+ * @error: a #GError
+ *
+ * Import X.509 certificate from given source path.
+ *
+ * The imported keys will be used to conduct PKCS#7 verification when pulling
+ * from the remote named @name.
+ *
+ * Returns: %TRUE on success, %FALSE on failure
+ */
+gboolean
+ostree_repo_remote_x509_import (OstreeRepo         *self,
+                                const char         *name,
+                                const char         *source_path,
+                                GCancellable       *cancellable,
+                                GError            **error)
+{
+  OstreeRemote *remote;
+
+  remote = _ostree_repo_get_remote_inherited (self, name, error);
+  if (remote == NULL)
+    return FALSE;
+
+  if (!glnx_file_copy_at (AT_FDCWD, source_path, NULL,
+                          self->repo_dir_fd, remote->keyring,
+                          GLNX_FILE_COPY_NOXATTRS | GLNX_FILE_COPY_OVERWRITE,
+                          cancellable, error))
+    return FALSE;
+
+  return TRUE;
 }
 
 /**

@@ -1,3 +1,4 @@
+/* vi: set et sw=2 ts=2 cino=t0,(0: */
 /* -*- mode: C; c-file-style: "gnu"; indent-tabs-mode: nil; -*-
  *
  * Copyright (C) 2015 Red Hat, Inc.
@@ -26,10 +27,18 @@
 #include "ot-main.h"
 #include "ot-remote-builtins.h"
 
+#ifdef HAVE_GNUTLS
+#include <gnutls/gnutls.h>
+#include <gnutls/abstract.h>
+#include <gnutls/x509.h>
+#endif
+
 static char **opt_set;
 static gboolean opt_no_gpg_verify;
+static gboolean opt_no_pkcs7_verify;
 static gboolean opt_if_not_exists;
 static char *opt_gpg_import;
+static char *opt_x509_import;
 static char *opt_contenturl;
 #ifdef OSTREE_ENABLE_EXPERIMENTAL_API
 static char *opt_collection_id;
@@ -45,8 +54,10 @@ static char *opt_repo;
 static GOptionEntry option_entries[] = {
   { "set", 0, 0, G_OPTION_ARG_STRING_ARRAY, &opt_set, "Set config option KEY=VALUE for remote", "KEY=VALUE" },
   { "no-gpg-verify", 0, 0, G_OPTION_ARG_NONE, &opt_no_gpg_verify, "Disable GPG verification", NULL },
+  { "no-pkcs7-verify", 0, 0, G_OPTION_ARG_NONE, &opt_no_pkcs7_verify, "Disable PKCS#7 verification", NULL },
   { "if-not-exists", 0, 0, G_OPTION_ARG_NONE, &opt_if_not_exists, "Do nothing if the provided remote exists", NULL },
   { "gpg-import", 0, 0, G_OPTION_ARG_FILENAME, &opt_gpg_import, "Import GPG key from FILE", "FILE" },
+  { "x509-import", 0, 0, G_OPTION_ARG_FILENAME, &opt_x509_import, "Import X.509 certificate from FILE", "FILE" },
   { "contenturl", 0, 0, G_OPTION_ARG_STRING, &opt_contenturl, "Use URL when fetching content", "URL" },
 #ifdef OSTREE_ENABLE_EXPERIMENTAL_API
   { "collection-id", 0, 0, G_OPTION_ARG_STRING, &opt_collection_id,
@@ -138,6 +149,11 @@ ot_remote_builtin_add (int argc, char **argv, GCancellable *cancellable, GError 
                            g_variant_new_variant (g_variant_new_take_string (g_steal_pointer (&opt_collection_id))));
 #endif  /* OSTREE_ENABLE_EXPERIMENTAL_API */
 
+  if (opt_no_pkcs7_verify)
+    g_variant_builder_add (optbuilder, "{s@v}",
+                           "pkcs7-verify",
+                           g_variant_new_variant (g_variant_new_boolean (FALSE)));
+
   options = g_variant_ref_sink (g_variant_builder_end (optbuilder));
 
   if (!ostree_repo_remote_change (repo, NULL,
@@ -174,6 +190,15 @@ ot_remote_builtin_add (int argc, char **argv, GCancellable *cancellable, GError 
       g_print ("Imported %u GPG key%s to remote \"%s\"\n",
                imported, (imported == 1) ? "" : "s", remote_name);
     }
+
+# ifdef HAVE_GNUTLS
+  if (opt_x509_import != NULL)
+   {
+     if (!ostree_repo_remote_x509_import (repo, remote_name, opt_x509_import,
+                                          cancellable, error))
+       goto out;
+   }
+# endif
 
   ret = TRUE;
  out:
